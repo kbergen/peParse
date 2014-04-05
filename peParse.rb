@@ -1,3 +1,22 @@
+"""
+	This is a limited PE parsing application
+	Copyright (C) 2014  Keith Bergen
+
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either version 2
+	of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+"""
+
 require 'digest'
 
 class PEParse
@@ -51,6 +70,23 @@ class PEParse
 		end
 	end
 	
+	def walkFile
+		#Checks file size and MZ header
+		validateFile
+		
+		#Jumps to the PE offset
+		skipToPE
+		#Populates the rest of the major structures
+		populateNTHeader
+		#Stores the section header information
+		populateSectionHeaders
+		
+		#Reads the sections into memory.
+		#@sectionHeaderArray.each do |header|
+		#	readSectionIntoMemory(header.pointerToRawData, header.sizeOfRawData)
+		#end
+	end
+	
 	#Skips to PE and starts processing!
 	def skipToPE
 		offsetToPE = interperateDWORD(@dosHdr.e_lfanew)
@@ -58,7 +94,6 @@ class PEParse
 		puts offsetToPE
 		@exe.seek(offsetToPE, IO::SEEK_SET)
 		@offset = @exe.tell
-		populateNTHeader
 	end
 	
 	def arrayToHex array
@@ -198,7 +233,7 @@ class PEParse
 	end
 	
 	def readSectionIntoMemory offsetInFile, sizeOfSection
-		section = readData(sizeOfSection, offsetInFile)
+		return readData(sizeOfSection, offsetInFile)
 	end
 	
 	#Bytes is required, offset can be nil, it assumes its at the last read pointer
@@ -302,12 +337,8 @@ def main
 	puts fs.sha1
 	puts fs.sha256
 	
-	#Validate file, include pop of MSDOS struct
-	pe.validateFile
-	
-	#Need to skip to PE
-	pe.skipToPE
-	pe.populateSectionHeaders
+	#Walk the file
+	pe.walkFile
 end
 
 main
